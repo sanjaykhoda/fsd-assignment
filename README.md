@@ -60,6 +60,29 @@ Express server on port 4000.
 | `npm run seed` | Wipes and reinserts the demo inspections |
 | `npm run build && npm start` | Production build; one process serves API + SPA on :4000 |
 
+<details>
+<summary><strong>Windows: <code>npm.ps1 cannot be loaded because running scripts is disabled</code></strong></summary>
+
+PowerShell's default execution policy on Windows client editions blocks npm's
+`.ps1` wrapper. Either call the batch shim instead, which needs no system
+change:
+
+```powershell
+npm.cmd install
+npm.cmd run dev
+```
+
+...or allow local scripts once (no admin required):
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+Git Bash and `cmd.exe` are unaffected. This is a PowerShell setting, not
+anything specific to this project.
+
+</details>
+
 > **On verification:** the `npm` path above was developed and tested directly on
 > my machine. Docker is not installed there, so rather than claim a path I had
 > not executed, I made CI execute it: every push builds the image, boots the
