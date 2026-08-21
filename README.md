@@ -138,9 +138,9 @@ but disappears from the new-inspection dropdown. History is never rewritten.
 **No data-fetching library, no UI kit, no icon library.**
 Six screens and two resources, with no shared cross-screen cache to coordinate.
 A 40-line `useApi` hook covers it; TanStack Query would be a larger mental model
-than the app it serves. The frontend has four
-runtime dependencies. If this grew optimistic updates, offline writes, or shared
-cross-screen caching, that calculus would flip.
+than the app it serves. The frontend has four runtime dependencies. If this grew
+optimistic updates, offline writes, or a shared cross-screen cache, that
+calculus would flip.
 
 **One origin, so CORS never exists.**
 In development Vite proxies `/api` to Express; in production Express serves the
