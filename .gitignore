@@ -7,3 +7,6 @@ data/
 .env
 .DS_Store
 *.log
+
+# The assignment brief itself is not ours to publish.
+FSD_Assignment.docx
