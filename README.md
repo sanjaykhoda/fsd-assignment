@@ -1,5 +1,7 @@
 # Quality Inspection Tracker
 
+[![CI](https://github.com/sanjaykhoda/fsd-assignment/actions/workflows/ci.yml/badge.svg)](https://github.com/sanjaykhoda/fsd-assignment/actions/workflows/ci.yml)
+
 A mobile-first web app for shop-floor supervisors to log, track and resolve
 quality defects from a phone. Built for the FSD assignment.
 
@@ -58,12 +60,13 @@ Express server on port 4000.
 | `npm run seed` | Wipes and reinserts the demo inspections |
 | `npm run build && npm start` | Production build; one process serves API + SPA on :4000 |
 
-> **On verification:** the `npm` path above was developed and tested on this
-> machine. Docker is not installed here, so the image and Compose file could not
-> be run locally — instead, CI (`.github/workflows/ci.yml`) builds the image,
-> boots it, and exercises the API against the real container on every push, in
-> addition to running the test suite on both Linux and Windows runners. I would
-> rather tell you that than claim a path I did not personally execute.
+> **On verification:** the `npm` path above was developed and tested directly on
+> my machine. Docker is not installed there, so rather than claim a path I had
+> not executed, I made CI execute it: every push builds the image, boots the
+> stack, and asserts health, SPA deep links, an authenticated log-and-resolve
+> round trip, and SAP webhook idempotency against the running container — plus
+> the test suite on both Linux and Windows runners. The badge above covers all
+> of that.
 
 ---
 
