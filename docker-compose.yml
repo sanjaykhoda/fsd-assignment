@@ -15,7 +15,9 @@ services:
       AUTH_USERNAME: supervisor
       AUTH_PASSWORD: inspect123
       JWT_SECRET: dev-only-secret-change-me
-      SAP_WEBHOOK_SECRET: sap-dev-secret
+      # Unset on purpose: /api/sap-webhook stays open, matching the npm path.
+      # Set it to require an X-SAP-Secret header.
+      # SAP_WEBHOOK_SECRET: sap-dev-secret
     volumes:
       # Named volume, so the database survives `docker compose down` and a
       # rebuild. Use `docker compose down -v` to start from a clean database.

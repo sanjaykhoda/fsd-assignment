@@ -31,7 +31,13 @@ export const config = {
   },
 
   sap: {
-    webhookSecret: env('SAP_WEBHOOK_SECRET', 'sap-dev-secret'),
+    /**
+     * Empty by default, which leaves POST /api/sap-webhook open so it can be
+     * called with nothing but a JSON body -- the endpoint the brief describes.
+     * Setting SAP_WEBHOOK_SECRET requires a matching X-SAP-Secret header, which
+     * is what a real deployment would do.
+     */
+    webhookSecret: env('SAP_WEBHOOK_SECRET', ''),
   },
 
   isTest: process.env.NODE_ENV === 'test',

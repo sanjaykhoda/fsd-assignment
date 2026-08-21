@@ -58,7 +58,7 @@ Express server on port 4000.
 
 | Command | Does |
 | --- | --- |
-| `npm test` | Runs the 49 API tests |
+| `npm test` | Runs the 56 API tests |
 | `npm run seed` | Wipes and reinserts the demo inspections |
 | `npm run build && npm start` | Production build; one process serves API + SPA on :4000 |
 
@@ -173,7 +173,6 @@ anything specific to this project.
 ```
 POST /api/sap-webhook
 Content-Type: application/json
-X-SAP-Secret: sap-dev-secret
 ```
 
 ```jsonc
@@ -192,9 +191,12 @@ Try it (run it **twice** — the second call returns `200`, not a duplicate):
 ```bash
 curl -X POST http://localhost:4000/api/sap-webhook \
   -H 'Content-Type: application/json' \
-  -H 'X-SAP-Secret: sap-dev-secret' \
   -d '{"NotificationNo":"10000451","PlantSection":"LOOM-14","DefectCode":"WEAVE","Priority":"1","ShortText":"Broken pick, roll 22"}'
 ```
+
+**No authentication by default** — the endpoint takes a JSON body and nothing
+else, as specified. Setting `SAP_WEBHOOK_SECRET` makes it require a matching
+`X-SAP-Secret` header instead, which is what a real deployment would do.
 
 An unrecognised `DefectCode` is filed under `Other` with the original code kept
 in the remarks rather than rejected — a real inbound integration must not drop
@@ -326,7 +328,7 @@ hand-written inline SVG icons; the system font stack, so no webfont round-trip.
 
 ## Testing
 
-`npm test` — 49 tests, `node:test` + `supertest` against an in-memory database,
+`npm test` — 56 tests, `node:test` + `supertest` against an in-memory database,
 no test framework config. They target the invariants a reviewer would try to
 break:
 

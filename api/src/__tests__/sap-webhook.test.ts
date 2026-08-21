@@ -24,20 +24,20 @@ describe('mock SAP webhook', () => {
     ...overrides,
   });
 
-  const post = (body: unknown, secret: string | null = config.sap.webhookSecret) => {
+  const post = (body: unknown, secret: string | null = null) => {
     const req = request(ctx.app).post('/api/sap-webhook');
     if (secret !== null) req.set('X-SAP-Secret', secret);
     return req.send(body);
   };
 
-  it('rejects a request with no shared secret', async () => {
-    const res = await post(payload(), null);
-    assert.equal(res.status, 401);
-  });
-
-  it('rejects a wrong shared secret', async () => {
-    const res = await post(payload(), 'wrong-secret');
-    assert.equal(res.status, 401);
+  // The brief describes an endpoint that takes a JSON payload and nothing
+  // else, so it is open unless a secret is explicitly configured.
+  it('accepts a plain JSON post with no headers beyond content-type', async () => {
+    // Its own PlantSection so it does not disturb the row counts asserted below.
+    const res = await post(payload({ NotificationNo: 'NO-AUTH-1', PlantSection: 'LOOM-NOAUTH' }), null);
+    assert.equal(res.status, 201);
+    assert.equal(res.body.data.source, 'sap');
+    assert.equal(res.body.data.machineId, 'LOOM-NOAUTH');
   });
 
   it('maps a valid payload onto an inspection with 201', async () => {
@@ -99,6 +99,44 @@ describe('mock SAP webhook', () => {
     const res = await post({ PlantSection: 'LOOM-01' });
     assert.equal(res.status, 422);
     assert.equal(res.body.error.details[0].field, 'NotificationNo');
+  });
+});
+
+// The secret is opt-in. When configured, it is enforced.
+describe('mock SAP webhook with a configured secret', () => {
+  let ctx: TestContext;
+  const SECRET = 'test-sap-secret';
+
+  before(() => {
+    ctx = createTestContext({ sapSecret: SECRET });
+  });
+
+  after(() => ctx.db.close());
+
+  const body = { NotificationNo: 'SEC-1', PlantSection: 'LOOM-14', DefectCode: 'WEAVE', Priority: '1' };
+
+  const post = (secret: string | null) => {
+    const req = request(ctx.app).post('/api/sap-webhook');
+    if (secret !== null) req.set('X-SAP-Secret', secret);
+    return req.send(body);
+  };
+
+  it('rejects a request with no secret header', async () => {
+    const res = await post(null);
+    assert.equal(res.status, 401);
+    assert.equal(res.body.error.code, 'UNAUTHORIZED');
+  });
+
+  it('rejects a wrong secret', async () => {
+    assert.equal((await post('wrong-secret')).status, 401);
+    // A prefix of the real secret must not pass either.
+    assert.equal((await post(SECRET.slice(0, -1))).status, 401);
+  });
+
+  it('accepts the correct secret', async () => {
+    const res = await post(SECRET);
+    assert.equal(res.status, 201);
+    assert.equal(res.body.data.externalRef, 'SEC-1');
   });
 });
 

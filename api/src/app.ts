@@ -13,11 +13,16 @@ import { createSapRoutes } from './sap/routes.ts';
 import { errorHandler, notFoundHandler } from './middleware/errors.ts';
 import { ok } from './lib/respond.ts';
 
+export interface AppOptions {
+  /** Overrides config.sap.webhookSecret. Empty leaves the webhook open. */
+  sapSecret?: string;
+}
+
 /**
  * Takes the database as an argument rather than importing a singleton, so the
  * test suite can hand in an in-memory database and run fully isolated.
  */
-export function createApp(db: Db): Express {
+export function createApp(db: Db, options: AppOptions = {}): Express {
   const app = express();
   const inspections = createInspectionRepository(db);
   const defectTypes = createDefectTypeRepository(db);
@@ -31,9 +36,9 @@ export function createApp(db: Db): Express {
   });
   app.use('/api/auth', createAuthRoutes());
 
-  // Authenticated by its own shared secret instead of a user session: SAP is a
-  // machine caller and has no way to log in.
-  app.use('/api', createSapRoutes({ inspections, defectTypes }));
+  // Not behind the user session: SAP is a machine caller with no way to log in.
+  // Open by default; set SAP_WEBHOOK_SECRET to require an X-SAP-Secret header.
+  app.use('/api', createSapRoutes({ inspections, defectTypes, secret: options.sapSecret }));
 
   // --- Authenticated endpoints ---------------------------------------------
   app.use('/api/inspections', requireAuth, createInspectionRoutes({ inspections, defectTypes }));

@@ -1,5 +1,5 @@
 import type { Express } from 'express';
-import { createApp } from '../app.ts';
+import { createApp, type AppOptions } from '../app.ts';
 import { config } from '../config.ts';
 import { createDb, type Db } from '../db/client.ts';
 import { migrate } from '../db/migrate.ts';
@@ -15,12 +15,12 @@ export interface TestContext {
  * A fresh in-memory database per suite: no fixture file to keep in sync, no
  * cross-test bleed, and nothing left on disk afterwards.
  */
-export function createTestContext(): TestContext {
+export function createTestContext(options: AppOptions = {}): TestContext {
   const db = createDb(':memory:');
   migrate(db);
 
   return {
-    app: createApp(db),
+    app: createApp(db, options),
     db,
     auth: { Authorization: `Bearer ${signToken({ username: config.auth.username })}` },
   };

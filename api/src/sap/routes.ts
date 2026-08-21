@@ -16,8 +16,8 @@ const PRIORITY_TO_SEVERITY: Record<string, Severity> = {
   '3': 'Minor',
 };
 
-function secretMatches(provided: string): boolean {
-  const expected = Buffer.from(config.sap.webhookSecret);
+function secretMatches(expectedSecret: string, provided: string): boolean {
+  const expected = Buffer.from(expectedSecret);
   const actual = Buffer.from(provided);
   // timingSafeEqual throws on a length mismatch, so guard before comparing.
   return expected.length === actual.length && timingSafeEqual(expected, actual);
@@ -26,6 +26,8 @@ function secretMatches(provided: string): boolean {
 interface Deps {
   inspections: InspectionRepository;
   defectTypes: DefectTypeRepository;
+  /** Empty string leaves the endpoint open. See config.sap.webhookSecret. */
+  secret?: string;
 }
 
 /**
@@ -37,13 +39,18 @@ interface Deps {
  *  - It is idempotent. SAP retries; replaying the same NotificationNo returns
  *    200 with the record already created instead of 201 and a duplicate row.
  */
-export function createSapRoutes({ inspections, defectTypes }: Deps): Router {
+export function createSapRoutes({ inspections, defectTypes, secret = config.sap.webhookSecret }: Deps): Router {
   const router = Router();
 
   router.post('/sap-webhook', (req, res) => {
-    const provided = req.get('x-sap-secret');
-    if (!provided || !secretMatches(provided)) {
-      throw ApiError.unauthorized('Invalid or missing X-SAP-Secret header');
+    // Open unless a secret is configured: the endpoint as specified takes a
+    // JSON body and nothing else, and a shared secret is a deployment choice
+    // rather than part of its contract.
+    if (secret) {
+      const provided = req.get('x-sap-secret');
+      if (!provided || !secretMatches(secret, provided)) {
+        throw ApiError.unauthorized('Invalid or missing X-SAP-Secret header');
+      }
     }
 
     const payload: SapWebhookInput = sapWebhookSchema.parse(req.body ?? {});

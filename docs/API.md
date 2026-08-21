@@ -44,8 +44,8 @@ validation rules.
 ## Authentication
 
 All `/api/inspections` and `/api/defect-types` endpoints require a bearer token.
-`/api/health` and `/api/sap-webhook` do not (the webhook uses a shared secret
-instead, because SAP is a machine caller with no session).
+`/api/health` and `/api/sap-webhook` do not -- the webhook is a machine-to-machine
+endpoint with its own opt-in shared secret (see below).
 
 ```bash
 curl -X POST http://localhost:4000/api/auth/login \
@@ -76,7 +76,7 @@ Send it as `Authorization: Bearer <token>`. Tokens expire after 12 hours.
 | `POST` | `/defect-types` | 201 + `Location` | 401, 409, 422 |
 | `PATCH` | `/defect-types/:id` | 200 | 401, 404, 409, 422 |
 | `DELETE` | `/defect-types/:id` | 204 | 401, 404, 409 |
-| `POST` | `/sap-webhook` | 201 / 200 | 401, 422 |
+| `POST` | `/sap-webhook` | 201 / 200 | 401 (only if a secret is configured), 422 |
 
 ---
 
@@ -194,15 +194,19 @@ built-in types can be neither renamed, retired, nor deleted.
 
 ## Mock SAP integration
 
-`POST /api/sap-webhook`, authenticated with a shared secret header rather than a
-user token.
+`POST /api/sap-webhook`. Not behind the user session -- SAP is a machine caller
+with no way to log in.
+
+**Authentication is opt-in.** With `SAP_WEBHOOK_SECRET` unset (the default) the
+endpoint accepts a plain JSON body, which is the endpoint as specified. Setting
+it requires a matching `X-SAP-Secret` header and returns `401` otherwise.
 
 ### Request
 
 ```
 POST /api/sap-webhook
 Content-Type: application/json
-X-SAP-Secret: sap-dev-secret
+X-SAP-Secret: <only when SAP_WEBHOOK_SECRET is set>
 ```
 
 ```jsonc

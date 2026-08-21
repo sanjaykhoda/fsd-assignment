@@ -80,10 +80,12 @@ jobs:
       - name: SAP webhook is idempotent
         run: |
           BODY='{"NotificationNo":"CI-0001","PlantSection":"CI-LINE","DefectCode":"WEAVE","Priority":"1"}'
+          # Deliberately no auth header: the compose stack leaves the webhook
+          # open, so this is exactly how a reviewer following the README calls it.
           FIRST=$(curl --silent -o /dev/null -w '%{http_code}' -X POST http://localhost:4000/api/sap-webhook \
-            -H 'X-SAP-Secret: sap-dev-secret' -H 'Content-Type: application/json' -d "$BODY")
+            -H 'Content-Type: application/json' -d "$BODY")
           REPLAY=$(curl --silent -o /dev/null -w '%{http_code}' -X POST http://localhost:4000/api/sap-webhook \
-            -H 'X-SAP-Secret: sap-dev-secret' -H 'Content-Type: application/json' -d "$BODY")
+            -H 'Content-Type: application/json' -d "$BODY")
           echo "first=$FIRST replay=$REPLAY"
           test "$FIRST" = "201"
           test "$REPLAY" = "200"
