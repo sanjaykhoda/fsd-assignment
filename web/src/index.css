@@ -1,0 +1,85 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens.
+ *
+ * The whole UI is built from a deliberately small set: a neutral slate scale
+ * plus ONE accent. Colour beyond that is reserved for meaning -- severity and
+ * status -- so that when something is coloured, it is saying something.
+ *
+ * Type: three sizes, two weights. Spacing: 4 / 8 / 12 / 16 / 24.
+ * Depth: 1px borders on white, never shadows.
+ */
+@theme {
+  --font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* The single accent. */
+  --color-brand-50: oklch(0.962 0.018 272.314);
+  --color-brand-100: oklch(0.93 0.034 272.788);
+  --color-brand-600: oklch(0.511 0.262 276.966);
+  --color-brand-700: oklch(0.457 0.24 277.023);
+
+  /* Severity. Fixed meanings, used only for severity. */
+  --color-critical: oklch(0.577 0.245 27.325);
+  --color-critical-bg: oklch(0.971 0.013 17.38);
+  --color-major: oklch(0.666 0.179 58.318);
+  --color-major-bg: oklch(0.973 0.071 103.193);
+  --color-minor: oklch(0.554 0.046 257.417);
+  --color-minor-bg: oklch(0.968 0.007 247.896);
+
+  /* Three type sizes: page title, body, meta. */
+  --text-title: 1.25rem;
+  --text-title--line-height: 1.75rem;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.375rem;
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.125rem;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+    font-family: var(--font-sans);
+    /* Vertical rubber-banding past the fixed nav looks broken on iOS. */
+    overscroll-behavior-y: none;
+  }
+
+  /*
+   * 16px is a hard floor for form controls: below it, mobile Safari zooms the
+   * viewport on focus and the user is left scrolled sideways mid-form.
+   */
+  input,
+  select,
+  textarea,
+  button {
+    font-size: 1rem;
+    font-family: inherit;
+  }
+
+  /* Keyboard focus stays visible; pointer focus does not draw a ring. */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-600;
+  }
+
+  /* Native date inputs render an unstyled, tiny indicator by default. */
+  input[type='date']::-webkit-calendar-picker-indicator {
+    @apply cursor-pointer opacity-60;
+  }
+}
+
+@layer utilities {
+  /* Applied to the bottom nav so it clears the iOS home indicator. */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Numerals in the summary table must line up column-wise. */
+  .nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
