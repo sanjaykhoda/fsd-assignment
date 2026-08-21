@@ -75,6 +75,9 @@ export const listQuerySchema = z
     severity: enumList(SEVERITIES),
     defectTypeId: idList,
     machineId: z.string().trim().max(60).optional(),
+    // Free-text search across machine ID, remarks, resolution note and
+    // defect type name. `machineId` stays as a narrower, explicit filter.
+    q: z.string().trim().max(100).optional(),
     from: isoDate.optional(),
     to: isoDate.optional(),
     sort: z.enum(['inspectedOn', 'severity', 'status', 'machineId', 'createdAt']).default('inspectedOn'),

@@ -87,7 +87,8 @@ Send it as `Authorization: Bearer <token>`. Tokens expire after 12 hours.
 | `status` | `Open` \| `Resolved` | all |
 | `severity` | `Critical` \| `Major` \| `Minor`; repeatable or comma-separated | all |
 | `defectTypeId` | integer; repeatable or comma-separated | all |
-| `machineId` | case-insensitive substring match | — |
+| `q` | free-text search across machine ID, remarks, resolution note and defect type name | — |
+| `machineId` | case-insensitive substring match on machine ID only | — |
 | `from` / `to` | `YYYY-MM-DD`, **inclusive on both ends** | unbounded |
 | `sort` | `inspectedOn` \| `severity` \| `status` \| `machineId` \| `createdAt` | `inspectedOn` |
 | `order` | `asc` \| `desc` | `desc` |

@@ -62,11 +62,29 @@ export interface CreateInspectionRecord {
   externalRef?: string | null;
 }
 
-const SELECT_INSPECTION = `
-  SELECT i.*, d.name AS defect_type, d.code AS defect_type_code
+const FROM_INSPECTIONS = `
   FROM inspections i
   JOIN defect_types d ON d.id = i.defect_type_id
 `;
+
+const SELECT_INSPECTION = `
+  SELECT i.*, d.name AS defect_type, d.code AS defect_type_code
+  ${FROM_INSPECTIONS}
+`;
+
+/**
+ * LIKE treats % and _ as wildcards, so a supervisor searching for "50_2" would
+ * silently also match "5012". Escaping them keeps the search literal.
+ *
+ * '!' is the escape character rather than the conventional backslash purely for
+ * legibility: a backslash would need doubling in both the SQL string and the
+ * JavaScript one, which is easy to get subtly wrong.
+ */
+const LIKE_ESCAPE = '!';
+
+function likeTerm(value: string): string {
+  return `%${value.replace(/[!%_]/g, (char) => LIKE_ESCAPE + char)}%`;
+}
 
 /**
  * Severity has to sort by meaning, not alphabetically -- as a string
@@ -122,8 +140,18 @@ function buildFilters(query: Partial<ListQuery>): { clause: string; params: unkn
     params.push(...query.defectTypeId);
   }
   if (query.machineId) {
-    conditions.push('i.machine_id LIKE ?');
-    params.push(`%${query.machineId}%`);
+    conditions.push(`i.machine_id LIKE ? ESCAPE '${LIKE_ESCAPE}'`);
+    params.push(likeTerm(query.machineId));
+  }
+  // One box covering everything a supervisor might remember about a defect:
+  // where it happened, what was written down, and how it was fixed. The term is
+  // bound once and reused across all four columns.
+  if (query.q) {
+    const term = `LIKE ? ESCAPE '${LIKE_ESCAPE}'`;
+    conditions.push(
+      `(i.machine_id ${term} OR i.remarks ${term} OR i.resolution_note ${term} OR d.name ${term})`,
+    );
+    params.push(likeTerm(query.q), likeTerm(query.q), likeTerm(query.q), likeTerm(query.q));
   }
   // Both bounds inclusive: to=2026-08-21 includes everything logged that day.
   if (query.from) {
@@ -144,7 +172,7 @@ export function createInspectionRepository(db: Db) {
       const { clause, params } = buildFilters(query);
 
       const countRow = db.get<{ count: number }>(
-        `SELECT COUNT(*) AS count FROM inspections i ${clause}`,
+        `SELECT COUNT(*) AS count ${FROM_INSPECTIONS} ${clause}`,
         params,
       );
 
@@ -214,7 +242,7 @@ export function createInspectionRepository(db: Db) {
                 SUM(CASE WHEN i.status = 'Open'     THEN 1 ELSE 0 END) AS open,
                 SUM(CASE WHEN i.status = 'Resolved' THEN 1 ELSE 0 END) AS resolved,
                 COUNT(*) AS total
-           FROM inspections i ${clause}
+           ${FROM_INSPECTIONS} ${clause}
           GROUP BY i.severity`,
         params,
       );

@@ -21,6 +21,33 @@ export function ListPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   /*
+   * The search box keeps its own state so typing stays responsive, and is
+   * mirrored into the URL after a pause. Without the debounce every keystroke
+   * would reset the result set and fire a request.
+   */
+  const urlSearch = params.get('q') ?? '';
+  const [search, setSearch] = useState(urlSearch);
+
+  // Re-sync when the URL changes from elsewhere, e.g. "Clear filters".
+  useEffect(() => setSearch(urlSearch), [urlSearch]);
+
+  useEffect(() => {
+    if (search === urlSearch) return;
+    const timer = setTimeout(() => {
+      setParams(
+        (previous) => {
+          const next = new URLSearchParams(previous);
+          if (search) next.set('q', search);
+          else next.delete('q');
+          return next;
+        },
+        { replace: true },
+      );
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search, urlSearch, setParams]);
+
+  /*
    * Filter state lives in the URL, not in component state: the view is
    * shareable, survives a refresh, and the Android back button undoes a filter.
    * It also maps 1:1 onto the API's query params, so there is no syncing code.
@@ -89,7 +116,7 @@ export function ListPage() {
   const activeCount = SHEET_PARAMS.filter((key) => params.get(key)).length;
   const chips = buildChips(params, defectTypes ?? [], remove);
   const hasMore = meta ? items.length < meta.total : false;
-  const isFiltered = activeCount > 0 || Boolean(params.get('status'));
+  const isFiltered = activeCount > 0 || Boolean(params.get('status')) || Boolean(urlSearch);
 
   return (
     <AppShell
@@ -101,6 +128,9 @@ export function ListPage() {
           activeCount={activeCount}
           chips={chips}
           onOpenFilters={() => setSheetOpen(true)}
+          search={search}
+          onSearchChange={setSearch}
+          searchPending={search !== urlSearch}
         />
       }
     >
@@ -119,13 +149,21 @@ export function ListPage() {
         <EmptyState
           title={isFiltered ? 'No matching inspections' : 'No inspections yet'}
           description={
-            isFiltered
-              ? 'Nothing matches the current filters. Try widening them.'
-              : 'Log the first defect and it will appear here.'
+            urlSearch
+              ? `Nothing matches "${urlSearch}". Search covers machine ID, remarks, resolution notes and defect type.`
+              : isFiltered
+                ? 'Nothing matches the current filters. Try widening them.'
+                : 'Log the first defect and it will appear here.'
           }
           action={
             isFiltered ? (
-              <Button variant="secondary" onClick={() => setParams({}, { replace: true })}>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSearch('');
+                  setParams({}, { replace: true });
+                }}
+              >
                 Clear filters
               </Button>
             ) : (

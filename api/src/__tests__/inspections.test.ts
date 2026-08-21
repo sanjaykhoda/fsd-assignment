@@ -230,6 +230,50 @@ describe('inspections list: filtering, sorting, pagination', () => {
     assert.equal(singleDay.body.meta.total, 2, 'a one-day range returns that day');
   });
 
+  it('searches machine id, remarks, resolution note and defect type together', async () => {
+    const byMachine = await list('q=LINE-A');
+    assert.equal(byMachine.body.meta.total, 1);
+    assert.equal(byMachine.body.data[0].machineId, 'LINE-A');
+
+    // Remarks and resolution notes are searchable, not just structured fields.
+    const byResolution = await list('q=Done');
+    assert.equal(byResolution.body.meta.total, 1);
+    assert.equal(byResolution.body.data[0].resolutionNote, 'Done');
+
+    // Defect type is joined, so its name is searchable too.
+    const byDefectType = await list('q=Hole');
+    assert.equal(byDefectType.body.meta.total, 2);
+  });
+
+  it('searches case-insensitively', async () => {
+    const lower = await list('q=line-a');
+    const upper = await list('q=LINE-A');
+    assert.equal(lower.body.meta.total, upper.body.meta.total);
+    assert.equal(lower.body.meta.total, 1);
+  });
+
+  it('returns an empty page rather than an error when nothing matches', async () => {
+    const res = await list('q=nothingmatchesthis');
+    assert.equal(res.status, 200);
+    assert.equal(res.body.meta.total, 0);
+    assert.deepEqual(res.body.data, []);
+  });
+
+  // Unescaped, '_' is a single-character wildcard and '%' matches anything.
+  it('treats LIKE wildcards in the search term as literal characters', async () => {
+    const underscore = await list('q=LINE_A');
+    assert.equal(underscore.body.meta.total, 0, "'_' must not match the '-' in LINE-A");
+
+    const percent = await list('q=%25');
+    assert.equal(percent.body.meta.total, 0, "'%' must not match every row");
+  });
+
+  it('combines search with the other filters', async () => {
+    const res = await list('q=LOOM&status=Open&severity=Critical');
+    assert.equal(res.body.meta.total, 1);
+    assert.equal(res.body.data[0].machineId, 'LOOM-02');
+  });
+
   it('rejects a range where from is after to with 422', async () => {
     const res = await list(`from=${today}&to=${shiftIsoDate(today, -5)}`);
     assert.equal(res.status, 422);

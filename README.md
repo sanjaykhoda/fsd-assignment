@@ -157,6 +157,7 @@ anything specific to this project.
 - Log an inspection — date, machine/line ID, defect type, severity, remarks
 - List with filtering by severity, status and date range, plus sorting and
   pagination
+- Free-text search across machine ID, remarks, resolution notes and defect type
 - Resolve an inspection with a mandatory resolution note
 - Summary of open/resolved counts by severity
 
@@ -263,6 +264,9 @@ screen.
 - **Bottom tab bar, not a hamburger.** Three destinations, all thumb-reachable.
   Logging is the supervisor's main job, so it has a permanent tab and is one tap
   from anywhere.
+- **Search is the first thing on the screen**, because half-remembering a job
+  ("that selvedge tear last week") is more common than knowing its exact
+  filters. It is debounced, so typing does not fire a request per keystroke.
 - **Status filter always visible** as a segmented control, since "what's still
   open?" is the constant question. Rarer filters live in a bottom sheet, and
   whatever is applied shows as removable chips — you are never stuck in a

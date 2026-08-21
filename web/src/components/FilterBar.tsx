@@ -1,6 +1,7 @@
 import { STATUSES } from '../lib/constants.ts';
 import { formatDate } from '../lib/format.ts';
 import type { DefectType } from '../lib/types.ts';
+import { SearchInput } from './SearchInput.tsx';
 
 export interface ActiveChip {
   key: string;
@@ -14,6 +15,9 @@ interface Props {
   activeCount: number;
   chips: ActiveChip[];
   onOpenFilters: () => void;
+  search: string;
+  onSearchChange: (value: string) => void;
+  searchPending: boolean;
 }
 
 const SEGMENTS = ['', ...STATUSES];
@@ -23,9 +27,24 @@ const SEGMENTS = ['', ...STATUSES];
  * open?"), so it is always visible as a segmented control -- zero taps to see,
  * one to apply. Everything rarer lives behind the Filters button.
  */
-export function FilterBar({ status, onStatusChange, activeCount, chips, onOpenFilters }: Props) {
+export function FilterBar({
+  status,
+  onStatusChange,
+  activeCount,
+  chips,
+  onOpenFilters,
+  search,
+  onSearchChange,
+  searchPending,
+}: Props) {
   return (
     <div className="border-b border-slate-200 px-4 py-2">
+      {/* Search sits above the status control: it is the widest net, and on a
+          phone it is what someone reaches for when they half-remember a job. */}
+      <div className="mb-2">
+        <SearchInput value={search} onChange={onSearchChange} pending={searchPending} />
+      </div>
+
       <div className="flex items-center gap-2">
         <div className="flex flex-1 rounded-xl border border-slate-300 bg-white p-0.5">
           {SEGMENTS.map((segment) => (
