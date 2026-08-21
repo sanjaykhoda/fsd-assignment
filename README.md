@@ -42,9 +42,11 @@ To start from an empty database: `docker compose down -v`.
 
 ### Without Docker
 
-Needs Node ≥ 20.19 (see `.nvmrc`).
+**Requires Node ≥ 20.19** (`.nvmrc` pins 22.12.0). Check first — Vite 7 needs it,
+and an older Node fails in ways that look unrelated:
 
 ```bash
+node --version
 npm install
 npm run dev
 ```
@@ -59,6 +61,22 @@ Express server on port 4000.
 | `npm test` | Runs the 49 API tests |
 | `npm run seed` | Wipes and reinserts the demo inspections |
 | `npm run build && npm start` | Production build; one process serves API + SPA on :4000 |
+
+<details>
+<summary><strong>API never starts / Vite reports <code>ECONNREFUSED 127.0.0.1:4000</code></strong></summary>
+
+Almost always Node being too old. Run `node --version` -- anything below
+**20.19** makes the API print a version message and exit, so nothing listens on
+4000 and the dev proxy has nowhere to forward to.
+
+Confusingly, `npm run seed` works on an old Node while `npm run dev` does not,
+because only the server needs Vite's floor. Both commands now check the version
+and say so explicitly.
+
+Upgrade Node to the version in `.nvmrc`, then **re-run `npm install`** so the
+native SQLite module is rebuilt against the new ABI, and start a fresh terminal.
+
+</details>
 
 <details>
 <summary><strong>Login fails with an error this app never produces</strong></summary>

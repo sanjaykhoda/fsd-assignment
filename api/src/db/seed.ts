@@ -3,6 +3,7 @@ import { createDefectTypeRepository } from '../defect-types/repository.ts';
 import { createInspectionRepository } from '../inspections/repository.ts';
 import type { Severity } from '../domain/constants.ts';
 import { shiftIsoDate, todayLocalIso } from '../lib/dates.ts';
+import { assertNodeVersion } from '../lib/node-version.ts';
 import { createDb, type Db } from './client.ts';
 import { migrate } from './migrate.ts';
 
@@ -105,6 +106,7 @@ export function seedIfEmpty(db: Db): void {
 
 /** `npm run seed` -- wipes inspections and reinserts the demo set. */
 function main(): void {
+  assertNodeVersion('seed');
   const db = createDb();
   migrate(db);
   db.run('DELETE FROM inspections');
