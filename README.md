@@ -61,6 +61,31 @@ Express server on port 4000.
 | `npm run build && npm start` | Production build; one process serves API + SPA on :4000 |
 
 <details>
+<summary><strong>Login fails with an error this app never produces</strong></summary>
+
+If signing in returns a message that is not one of `Incorrect username or
+password`, `Missing bearer token`, or `Session expired or invalid`, then
+something other than this API is listening on port 4000 and the dev proxy is
+forwarding to it. Check who owns the port:
+
+```powershell
+Get-NetTCPConnection -LocalPort 4000 -State Listen |
+  ForEach-Object { Get-Process -Id $_.OwningProcess | Select-Object Id, ProcessName, Path }
+```
+
+`curl http://localhost:4000/api/health` should return
+`{"data":{"status":"ok",...}}`. Anything else confirms it.
+
+Either stop the other process, or move this app to a free port -- both the API
+and the dev proxy read it:
+
+```powershell
+$env:PORT=4100; $env:API_PORT=4100; npm.cmd run dev
+```
+
+</details>
+
+<details>
 <summary><strong>Windows: <code>npm.ps1 cannot be loaded because running scripts is disabled</code></strong></summary>
 
 PowerShell's default execution policy on Windows client editions blocks npm's
