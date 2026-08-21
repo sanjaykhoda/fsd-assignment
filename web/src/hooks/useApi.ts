@@ -14,9 +14,9 @@ export interface ApiResult<T> extends State<T> {
 }
 
 /**
- * Data fetching for four screens and one resource. A cache library would be
- * larger than the app it serves; if this grew optimistic updates or shared
- * cross-screen caching, that calculus would change (noted in the README).
+ * Data fetching for six screens with no shared cross-screen cache to keep in
+ * sync. A cache library would be larger than the app it serves; if this grew
+ * optimistic updates or offline writes, that calculus would change.
  *
  * `fetcher` must be referentially stable -- wrap it in useCallback at the call
  * site, keyed on whatever the request actually depends on.

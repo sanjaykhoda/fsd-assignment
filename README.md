@@ -136,8 +136,9 @@ cannot be deleted (`409`), only retired — it stays readable on existing record
 but disappears from the new-inspection dropdown. History is never rewritten.
 
 **No data-fetching library, no UI kit, no icon library.**
-Four screens and one resource. A 40-line `useApi` hook covers it; TanStack Query
-would be a larger mental model than the app it serves. The frontend has four
+Six screens and two resources, with no shared cross-screen cache to coordinate.
+A 40-line `useApi` hook covers it; TanStack Query would be a larger mental model
+than the app it serves. The frontend has four
 runtime dependencies. If this grew optimistic updates, offline writes, or shared
 cross-screen caching, that calculus would flip.
 
