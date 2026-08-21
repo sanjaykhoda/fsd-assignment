@@ -163,9 +163,44 @@ anything specific to this project.
 
 **Bonus**
 
-- Mock SAP integration: `POST /api/sap-webhook`, documented in
-  [docs/API.md](docs/API.md), idempotent on the notification number
+- Mock SAP integration: `POST /api/sap-webhook`, idempotent on the notification
+  number — payload shape below
 - JWT authentication
+
+<details open>
+<summary><strong>SAP webhook — expected payload</strong></summary>
+
+```
+POST /api/sap-webhook
+Content-Type: application/json
+X-SAP-Secret: sap-dev-secret
+```
+
+```jsonc
+{
+  "NotificationNo":   "10000451",             // required -> idempotency key
+  "PlantSection":     "LOOM-14",              // required -> machineId
+  "DefectCode":       "WEAVE",                // optional -> defect type, matched on code
+  "Priority":         "1",                    // optional -> 1=Critical 2=Major 3=Minor
+  "NotificationDate": "2026-08-21",           // optional -> defaults to today
+  "ShortText":        "Broken pick, roll 22"  // optional -> remarks
+}
+```
+
+Try it (run it **twice** — the second call returns `200`, not a duplicate):
+
+```bash
+curl -X POST http://localhost:4000/api/sap-webhook \
+  -H 'Content-Type: application/json' \
+  -H 'X-SAP-Secret: sap-dev-secret' \
+  -d '{"NotificationNo":"10000451","PlantSection":"LOOM-14","DefectCode":"WEAVE","Priority":"1","ShortText":"Broken pick, roll 22"}'
+```
+
+An unrecognised `DefectCode` is filed under `Other` with the original code kept
+in the remarks rather than rejected — a real inbound integration must not drop
+messages. Full mapping tables in [docs/API.md](docs/API.md).
+
+</details>
 
 **Beyond the brief**
 
