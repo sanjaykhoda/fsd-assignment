@@ -63,6 +63,20 @@ Express server on port 4000.
 | `npm run build && npm start` | Production build; one process serves API + SPA on :4000 |
 
 <details>
+<summary><strong><code>NODE_MODULE_VERSION</code> mismatch / <code>ERR_DLOPEN_FAILED</code></strong></summary>
+
+`better-sqlite3` is a native addon compiled for one Node ABI. Switching Node
+versions without reinstalling leaves the old binary in place:
+
+```bash
+rm -rf node_modules && npm install
+```
+
+Always re-run `npm install` after changing Node versions.
+
+</details>
+
+<details>
 <summary><strong>API never starts / Vite reports <code>ECONNREFUSED 127.0.0.1:4000</code></strong></summary>
 
 Almost always Node being too old. Run `node --version` -- anything below
