@@ -24,20 +24,22 @@ describe('mock SAP webhook', () => {
     ...overrides,
   });
 
-  const post = (body: unknown, secret: string | null = null) => {
+  const post = (body: unknown, secret: string | null = config.sap.webhookSecret) => {
     const req = request(ctx.app).post('/api/sap-webhook');
     if (secret !== null) req.set('X-SAP-Secret', secret);
     return req.send(body);
   };
 
-  // The brief describes an endpoint that takes a JSON payload and nothing
-  // else, so it is open unless a secret is explicitly configured.
-  it('accepts a plain JSON post with no headers beyond content-type', async () => {
-    // Its own PlantSection so it does not disturb the row counts asserted below.
-    const res = await post(payload({ NotificationNo: 'NO-AUTH-1', PlantSection: 'LOOM-NOAUTH' }), null);
-    assert.equal(res.status, 201);
-    assert.equal(res.body.data.source, 'sap');
-    assert.equal(res.body.data.machineId, 'LOOM-NOAUTH');
+  it('rejects a request with no X-SAP-Secret header', async () => {
+    const res = await post(payload({ NotificationNo: 'NO-AUTH-1' }), null);
+    assert.equal(res.status, 401);
+    assert.equal(res.body.error.code, 'UNAUTHORIZED');
+    // The message has to say what to do; a bare 401 is a dead end.
+    assert.match(res.body.error.message, /X-SAP-Secret/);
+  });
+
+  it('rejects a wrong X-SAP-Secret header', async () => {
+    assert.equal((await post(payload(), 'wrong-secret')).status, 401);
   });
 
   it('maps a valid payload onto an inspection with 201', async () => {
@@ -102,8 +104,8 @@ describe('mock SAP webhook', () => {
   });
 });
 
-// The secret is opt-in. When configured, it is enforced.
-describe('mock SAP webhook with a configured secret', () => {
+// A custom secret is honoured, and near-misses are rejected.
+describe('mock SAP webhook secret handling', () => {
   let ctx: TestContext;
   const SECRET = 'test-sap-secret';
 
@@ -137,6 +139,17 @@ describe('mock SAP webhook with a configured secret', () => {
     const res = await post(SECRET);
     assert.equal(res.status, 201);
     assert.equal(res.body.data.externalRef, 'SEC-1');
+  });
+
+  it('fails closed when the server has no secret configured', async () => {
+    const blank = createTestContext({ sapSecret: '' });
+    const res = await request(blank.app)
+      .post('/api/sap-webhook')
+      .set('X-SAP-Secret', '')
+      .send({ NotificationNo: 'BLANK-1', PlantSection: 'LOOM-01' });
+
+    assert.equal(res.status, 401, 'a blank secret must not accept every caller');
+    blank.db.close();
   });
 });
 

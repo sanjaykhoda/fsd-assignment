@@ -173,6 +173,7 @@ anything specific to this project.
 ```
 POST /api/sap-webhook
 Content-Type: application/json
+X-SAP-Secret: sap-dev-secret
 ```
 
 ```jsonc
@@ -191,12 +192,15 @@ Try it (run it **twice** — the second call returns `200`, not a duplicate):
 ```bash
 curl -X POST http://localhost:4000/api/sap-webhook \
   -H 'Content-Type: application/json' \
+  -H 'X-SAP-Secret: sap-dev-secret' \
   -d '{"NotificationNo":"10000451","PlantSection":"LOOM-14","DefectCode":"WEAVE","Priority":"1","ShortText":"Broken pick, roll 22"}'
 ```
 
-**No authentication by default** — the endpoint takes a JSON body and nothing
-else, as specified. Setting `SAP_WEBHOOK_SECRET` makes it require a matching
-`X-SAP-Secret` header instead, which is what a real deployment would do.
+**The `X-SAP-Secret` header is required** — the demo value is `sap-dev-secret`,
+overridable with the `SAP_WEBHOOK_SECRET` environment variable. An inbound
+webhook is an unauthenticated write path into the database, so leaving it open
+would let anyone who knows the URL create records. Omitting the header returns
+`401` with a message naming the header.
 
 An unrecognised `DefectCode` is filed under `Other` with the original code kept
 in the remarks rather than rejected — a real inbound integration must not drop

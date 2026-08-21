@@ -43,14 +43,25 @@ export function createSapRoutes({ inspections, defectTypes, secret = config.sap.
   const router = Router();
 
   router.post('/sap-webhook', (req, res) => {
-    // Open unless a secret is configured: the endpoint as specified takes a
-    // JSON body and nothing else, and a shared secret is a deployment choice
-    // rather than part of its contract.
-    if (secret) {
-      const provided = req.get('x-sap-secret');
-      if (!provided || !secretMatches(secret, provided)) {
-        throw ApiError.unauthorized('Invalid or missing X-SAP-Secret header');
-      }
+    /*
+     * The secret is always required. An inbound webhook is an unauthenticated
+     * write path into the database, so leaving it open would let anyone who
+     * knows the URL create inspection records.
+     *
+     * A blank configured secret is treated as misconfiguration and fails
+     * closed, rather than silently accepting every caller.
+     */
+    if (!secret) {
+      throw ApiError.unauthorized('SAP webhook is not configured. Set SAP_WEBHOOK_SECRET on the server.');
+    }
+
+    const provided = req.get('x-sap-secret');
+    if (!provided || !secretMatches(secret, provided)) {
+      // Names the header and points at the README, so a 401 is self-explanatory
+      // rather than a dead end for anyone trying the endpoint by hand.
+      throw ApiError.unauthorized(
+        'Missing or invalid X-SAP-Secret header. Send the shared secret documented in the README.',
+      );
     }
 
     const payload: SapWebhookInput = sapWebhookSchema.parse(req.body ?? {});

@@ -32,12 +32,12 @@ export const config = {
 
   sap: {
     /**
-     * Empty by default, which leaves POST /api/sap-webhook open so it can be
-     * called with nothing but a JSON body -- the endpoint the brief describes.
-     * Setting SAP_WEBHOOK_SECRET requires a matching X-SAP-Secret header, which
-     * is what a real deployment would do.
+     * Shared secret for POST /api/sap-webhook, always required. The default is
+     * the value documented in the README so the endpoint works out of the box;
+     * a real deployment overrides it. Inbound integrations are unauthenticated
+     * entry points into the database, so this one is not optional.
      */
-    webhookSecret: env('SAP_WEBHOOK_SECRET', ''),
+    webhookSecret: env('SAP_WEBHOOK_SECRET', 'sap-dev-secret'),
   },
 
   isTest: process.env.NODE_ENV === 'test',
