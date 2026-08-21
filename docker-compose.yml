@@ -1,0 +1,26 @@
+# One service. The app is a single Node process with an embedded SQLite file,
+# so there is no database container to wait on and no network to wire up.
+#
+#   docker compose up --build
+#   -> http://localhost:4000
+services:
+  app:
+    build: .
+    ports:
+      - '4000:4000'
+    environment:
+      PORT: 4000
+      DB_PATH: data/app.sqlite
+      # Demo values. Override them for anything beyond a local review.
+      AUTH_USERNAME: supervisor
+      AUTH_PASSWORD: inspect123
+      JWT_SECRET: dev-only-secret-change-me
+      SAP_WEBHOOK_SECRET: sap-dev-secret
+    volumes:
+      # Named volume, so the database survives `docker compose down` and a
+      # rebuild. Use `docker compose down -v` to start from a clean database.
+      - inspection-data:/app/api/data
+    restart: unless-stopped
+
+volumes:
+  inspection-data:

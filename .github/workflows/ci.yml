@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # Proves a clean checkout installs, builds and passes on both a Linux and a
+  # Windows runner -- the two environments a reviewer is likely to be on.
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # `npm ci` rather than `npm install`: it fails loudly if the lockfile and
+      # the manifests have drifted, which is exactly what a reviewer would hit.
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+
+  # The Docker path cannot be verified on the machine this was developed on, so
+  # it is verified here instead: build the image, run it, and exercise the API
+  # end to end against the real container.
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start the stack
+        run: docker compose up --build --detach --wait
+
+      - name: Health check
+        run: |
+          curl --fail --silent --show-error http://localhost:4000/api/health | tee /dev/stderr | grep -q '"status":"ok"'
+
+      - name: SPA is served on the same origin
+        run: |
+          curl --fail --silent http://localhost:4000/ | grep -q '<div id="root">'
+          # A deep link must return the app shell, not a 404.
+          curl --fail --silent http://localhost:4000/summary | grep -q '<div id="root">'
+
+      - name: Unknown API routes return JSON, not HTML
+        run: |
+          curl --silent http://localhost:4000/api/nope | grep -q '"code":"NOT_FOUND"'
+
+      - name: Authenticated round trip
+        run: |
+          TOKEN=$(curl --fail --silent -X POST http://localhost:4000/api/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"username":"supervisor","password":"inspect123"}' | jq -r .data.token)
+          test -n "$TOKEN"
+
+          # The database auto-seeds on first boot, so the list is not empty.
+          curl --fail --silent -H "Authorization: Bearer $TOKEN" \
+            http://localhost:4000/api/inspections | jq -e '.meta.total > 0'
+
+          ID=$(curl --fail --silent -X POST http://localhost:4000/api/inspections \
+            -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+            -d '{"machineId":"CI-LOOM","defectType":"Weave Defect","severity":"Critical"}' | jq -r .data.id)
+
+          curl --fail --silent -X PATCH "http://localhost:4000/api/inspections/$ID/resolve" \
+            -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+            -d '{"resolutionNote":"Verified in CI"}' | jq -e '.data.status == "Resolved"'
+
+      - name: SAP webhook is idempotent
+        run: |
+          BODY='{"NotificationNo":"CI-0001","PlantSection":"CI-LINE","DefectCode":"WEAVE","Priority":"1"}'
+          FIRST=$(curl --silent -o /dev/null -w '%{http_code}' -X POST http://localhost:4000/api/sap-webhook \
+            -H 'X-SAP-Secret: sap-dev-secret' -H 'Content-Type: application/json' -d "$BODY")
+          REPLAY=$(curl --silent -o /dev/null -w '%{http_code}' -X POST http://localhost:4000/api/sap-webhook \
+            -H 'X-SAP-Secret: sap-dev-secret' -H 'Content-Type: application/json' -d "$BODY")
+          echo "first=$FIRST replay=$REPLAY"
+          test "$FIRST" = "201"
+          test "$REPLAY" = "200"
+
+      - name: Container logs
+        if: always()
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
