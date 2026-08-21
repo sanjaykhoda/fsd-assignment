@@ -98,6 +98,11 @@ Send it as `Authorization: Bearer <token>`. Tokens expire after 12 hours.
 `sort=severity&order=desc` returns **Critical first** — severity is ordered by
 meaning, not alphabetically (alphabetically it would be exactly backwards).
 
+`q` is a case-insensitive substring match across four fields at once, and
+combines with every other filter. `%` and `_` in the term are treated as
+literal characters rather than LIKE wildcards, so searching `LINE_A` does not
+also return `LINE-A`.
+
 ```bash
 curl -H "Authorization: Bearer $TOKEN" \
   'http://localhost:4000/api/inspections?status=Open&severity=Critical,Major&sort=severity&order=desc'
